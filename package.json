@@ -1,0 +1,8 @@
+{
+  "name": "custom-style-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node api/style.js"
+  }
+}
