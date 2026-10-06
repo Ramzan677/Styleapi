@@ -1,7 +1,8 @@
 const express = require('express');
+const axios = require('axios');
 const app = express();
 
-// CORS Headers enable karne ke liye
+// Enable CORS for all requests
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -9,50 +10,56 @@ app.use((req, res, next) => {
   next();
 });
 
+// Primary Endpoint: /api/style
 app.get('/api/style', async (req, res) => {
   try {
     const text = req.query.text || 'Ramzan';
-    
-    // Original API se response fetch karna
     const targetUrl = `https://style-text-gen.vercel.app/api/style?text=${encodeURIComponent(text)}`;
-    const response = await fetch(targetUrl);
-    
-    if (!response.ok) {
-      return res.status(response.status).json({
-        success: false,
-        error: 'Failed to fetch data from original source'
-      });
-    }
 
-    const data = await response.json();
+    // Fetch data from upstream API
+    const response = await axios.get(targetUrl, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      }
+    });
 
-    // Re-ordering Keys with Custom Fields
+    const data = response.data || {};
+
+    // Construct response with custom developer info and group link
     const customResponse = {
-      success: data.success,
+      success: data.success ?? true,
       developer: "Ramzan Ahsan",
       join_group: "https://chat.whatsapp.com/FiZBn0BykHX47d1iHLOay1",
-      version: data.version,
-      meta: data.meta,
-      analysis: data.analysis,
-      data: data.data
+      version: data.version || "6.0.0",
+      meta: data.meta || {},
+      analysis: data.analysis || {},
+      data: data.data || []
     };
 
     return res.status(200).json(customResponse);
 
   } catch (error) {
+    console.error('API Error:', error.message);
+
     return res.status(500).json({
       success: false,
-      message: 'Server Error',
+      developer: "Ramzan Ahsan",
+      join_group: "https://chat.whatsapp.com/FiZBn0BykHX47d1iHLOay1",
+      message: "Upstream style API failed to respond.",
       error: error.message
     });
   }
 });
 
+// Root route check
 app.get('/', (req, res) => {
-  res.send('Style Text API Proxy is Running!');
+  res.status(200).json({
+    status: "Active",
+    message: "Style Text API is running!",
+    endpoint: "/api/style?text=YourText"
+  });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Export default app for Vercel Serverless Function engine
+module.exports = app;
