@@ -1,46 +1,58 @@
-export default async function handler(req, res) {
-  // CORS Headers enable kar rahe hain taakay web app se call ho sake
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Content-Type", "application/json");
+const express = require('express');
+const app = express();
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+// CORS Headers enable karne ke liye
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
 
+app.get('/api/style', async (req, res) => {
   try {
-    // User jo text pass karega woh catch karega (default: Ramzan)
-    const { text = "Ramzan" } = req.query;
-
-    // Original API ko call karna
+    const text = req.query.text || 'Ramzan';
+    
+    // Original API se response fetch karna
     const targetUrl = `https://style-text-gen.vercel.app/api/style?text=${encodeURIComponent(text)}`;
     const response = await fetch(targetUrl);
-
+    
     if (!response.ok) {
       return res.status(response.status).json({
         success: false,
-        error: "Original API fetching failed"
+        error: 'Failed to fetch data from original source'
       });
     }
 
-    const originalData = await response.json();
+    const data = await response.json();
 
-    // Custom credits & structure modification
+    // Re-ordering Keys with Custom Fields
     const customResponse = {
-      success: originalData.success ?? true,
-      developer: "Ramzan Ahsan", // Aapka Developer Name
-      version: originalData.version || "1.0.0",
-      meta: originalData.meta || {},
-      analysis: originalData.analysis || {},
-      data: originalData.data || []
+      success: data.success,
+      developer: "Ramzan Ahsan",
+      join_group: "https://chat.whatsapp.com/FiZBn0BykHX47d1iHLOay1",
+      version: data.version,
+      meta: data.meta,
+      analysis: data.analysis,
+      data: data.data
     };
 
     return res.status(200).json(customResponse);
+
   } catch (error) {
     return res.status(500).json({
       success: false,
-      error: "Internal Server Error",
-      details: error.message
+      message: 'Server Error',
+      error: error.message
     });
   }
-}
+});
+
+app.get('/', (req, res) => {
+  res.send('Style Text API Proxy is Running!');
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
